@@ -1,4 +1,3 @@
-from twisted.internet import reactor
 from twisted.words.protocols.jabber import component
 
 from twilix.dispatcher import Dispatcher
