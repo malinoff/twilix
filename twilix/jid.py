@@ -64,18 +64,25 @@ class MyJID(JID):
 
     @classmethod
     def _unescapedTransform(cls, string):
-        __unescapedMap = dict(map(None,
+        unescapedMap = dict(map(None,
                                   cls.__escapedMap.values(),
                                   cls.__escapedMap.keys()
                                   ))
-        __unescapedMap[u'\\5c'] = '\\'
-        for k in __unescapedMap.keys():
+        for k in unescapedMap.keys():
             while True:
                 place = string.find(k)
                 if place == -1:
                     break
-                else:
-                    string = string[:place]+__unescapedMap[k]+string[place+3:]
+                string = string[:place] + unescapedMap[k]+string[place+3:]
+        slashList = [u'\\5c%s' % x[1:] for x in unescapedMap.keys()]
+        slashList.append(u'\\5c5c')
+        for elem in slashList:
+            while True:
+                place = string.find(elem)
+                if place == -1:
+                    break
+                string = u'%s%c%s%s' % (string[:place], elem[0],
+                                        elem[3:], string[place+5:])
         return string
 
     @classmethod
@@ -109,14 +116,17 @@ class MyJID(JID):
         JID(u'c\\\\3a\\\\cool\\\\20stuff@example.com')
         >>> print MyJID.escaped('c:\\\\5commas', host)
         JID(u'c\\\\3a\\\\5c5commas@example.com')
-
+        >>> print MyJID.escaped("here\\'s_a_wild_&_/cr%zy/_address", host)
+        JID(u'here\\\\27s_a_wild_\\\\26_\\\\2fcr%zy\\\\2f_address@example.com')
         """
+
         if host is None:
-            raise Exception('Cannot escape characters with empty host!')
+            raise Exception('Cannot escape characters without host!')
         if user != None:
             user = cls._escapedTransform(user)
         if res != None:
             res = cls._escapedTransform(res)
+
         return cls(tuple=(user, host, res))
 
     @property
@@ -125,9 +135,34 @@ class MyJID(JID):
         Transforms escaped characters into unescaped
         Returns unicode string
 
-        
-
+        >>> print MyJID('space\\\\20cadet@example.com').unescaped
+        space cadet@example.com
+        >>> print MyJID('call\\\\20me\\\\20\\\\22ishmael\\\\22@example.com').unescaped
+        call me "ishmael"@example.com
+        >>> print MyJID(u'at\\\\26t\\\\20guy@example.com').unescaped
+        at&t guy@example.com
+        >>> print MyJID(u'd\\\\27artagnan@example.com').unescaped
+        d'artagnan@example.com
+        >>> print MyJID(u'\\\\2f.fanboy@example.com').unescaped
+        /.fanboy@example.com
+        >>> print MyJID(u'\\\\3a\\\\3afoo\\\\3a\\\\3a@example.com').unescaped
+        ::foo::@example.com
+        >>> print MyJID(u'\\\\3cfoo\\\\3e@example.com').unescaped
+        <foo>@example.com
+        >>> print MyJID(u'user\\\\40host@example.com').unescaped
+        user@host@example.com
+        >>> print MyJID(u'c\\\\3a\\\\net@example.com').unescaped
+        c:\\net@example.com
+        >>> print MyJID(u'c\\\\3a\\\\\\\\net@example.com').unescaped
+        c:\\\\net@example.com
+        >>> print MyJID(u'c\\\\3a\\\\cool\\\\20stuff@example.com').unescaped
+        c:\\cool stuff@example.com
+        >>> print MyJID(u'c\\\\3a\\\\5c5commas@example.com').unescaped
+        c:\\5commas@example.com
+        >>> print MyJID(u'here\\\\27s_a_wild_\\\\26_\\\\2fcr%zy\\\\2f_address@example.com').unescaped
+        here\'s_a_wild_&_/cr%zy/_address@example.com
         """
+
         uJID = self.host
         if self.user:
             uJID = self._unescapedTransform(self.user) + '@' + uJID
