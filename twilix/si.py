@@ -1,3 +1,10 @@
+"""
+Module implements http://jabber.org/protocol/si/profile/file-transfer feature
+(XEP-0096), based on stream initiation feature (XEP-0095).
+
+You can use this to send and receive files.
+"""
+
 import uuid
 from UserDict import UserDict
 
@@ -15,6 +22,14 @@ class ConnectionAborted(Exception):
     Usually, it means that remote side aborted a transfer. """
 
 class FeatureForm(Form):
+    """
+    Extends Form class.
+    Use this to assemble x stanza with the type of 'form' contains
+    field with all needed stream methods.
+
+    :param methods: All needed stream methods you want to add.
+
+    """
     def __init__(self, methods=(), *args, **kwargs):
         options = [ff.Option(value=method) for method in methods]
         self.nodesProps['stream_method'] = \
@@ -23,21 +38,35 @@ class FeatureForm(Form):
         super(FeatureForm, self).__init__(*args, **kwargs)
 
 class Feature(VElement):
+    """
+    Extends VElement class.
+    The base class for feature stanzas with the child,
+    which is FeatureForm class.
+    """
     elementName = 'feature'
     elementUri = 'http://jabber.org/protocol/feature-neg'
 
     methods = fields.ElementNode(FeatureForm)
 
 class SIElement(Query):
+    """
+    Extends Query class.
+    The base class for si queries.
+    """
     elementName = 'si'
     elementUri = 'http://jabber.org/protocol/si'
 
     feature = fields.ElementNode(Feature)
 
 class SIResponse(SIElement):
-    pass
+    """
+    Result class for the si queries.
+    """
 
 class SIRequest(SIElement):
+    """
+    The class for handling si requests.
+    """
     result_class = SIResponse
     # TODO: error_class
 
@@ -72,6 +101,9 @@ class SIRequest(SIElement):
         return reply, deferred, meta
    
 class SIProfile(object):
+    """
+    Defines profile for si protocol.
+    """
     handlerClass = SIRequest
     def __init__(self, si):
         self.si = si
@@ -93,6 +125,13 @@ class Streams(UserDict):
         return self._keys
 
 class SI(object):
+    """
+    The main class for si-based file transfer.
+
+    :param dispatcher: Dispatcher instance to be used with the service.
+
+    :param streams: Streams to be used in file transfer.
+    """
     def __init__(self, dispatcher, streams):
         self.dispatcher = dispatcher
         self.streams = Streams()
@@ -100,12 +139,24 @@ class SI(object):
             self.streams[stream.NS] = stream
 
     def init(self, disco=None, iq_validator=None):
+        """
+        Adds the feature in disco.
+
+        :param disco: Client's disco instance.
+
+        :param iq_validator: Validator for proper parsing.
+        """
         self.iq_validator = iq_validator
         if disco is not None:
             disco.root_info.addFeatures(DiscoFeature(var=SIElement.elementUri))
         self.disco = disco
 
     def register_profile(self, profile, *args, **kwargs):
+        """
+        Registers profile and it's handler and adds feature in disco.
+
+        :param profile: Profile to be registrated.
+        """
         profile = profile(self, *args, **kwargs)
 
         h_cl = profile.handlerClass
@@ -118,6 +169,15 @@ class SI(object):
 
     @defer.inlineCallbacks
     def initiate(self, request, to, from_=None):
+        """
+        Initiates file transfer.
+
+        :param request: Request to sent.
+
+        :param to: Destination JID.
+
+        :param from_: Source JID.
+        """
         fform = FeatureForm(methods=self.streams.keys(), type_='form')
         feature = Feature(methods=fform)
         request.feature = feature
@@ -141,6 +201,19 @@ class SI(object):
         defer.returnValue((stream, sid))
 
     def receive(self, method, sid, initiator, meta, timeout=60):
+        """
+        Receives data.
+
+        :param method: Defines stream to be used.
+
+        :param sid: Transfer's id.
+
+        :param initiator: ???
+
+        :param meta: ???
+
+        :param timeout: Time in seconds.
+        """
         stream = self.streams[method]
         stream.registerSession(sid, initiator, self.dispatcher.myjid,
                                self.stream_cb, meta)
