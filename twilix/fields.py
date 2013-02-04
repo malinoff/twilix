@@ -46,11 +46,18 @@ class AttributeProp(object):
         return u'AttributeProp %s' % self.xmlattr
 
 class StringType(object):
+    """Used for nodes contain strings."""
     def to_python(self, value):
+        """Return value in python's unicode."""
         if value is not None:
             return unicode(value)
 
     def clean(self, value):
+        """Checks that the required value was set.
+        
+        :raises:
+            ElementParseError, if value was not set.
+        """
         if not value and self.required:
             raise ElementParseError, u'%s is required' % self
         return value
@@ -79,7 +86,17 @@ class IntegerType(StringType):
         return res
 
 class FloatType(StringType):
+    """Used for nodes contain float number."""
     def to_python(self, value):
+        """
+        Return value cast to float if it's possible.
+        
+        :returns:
+            value cast to float.
+            
+            None if there's ValueError.
+            
+        """
         value = super(FloatType, self).to_python(value)
         try:
             res = float(value)
@@ -91,6 +108,7 @@ class DateTimeType(StringType):
     """Used for nodes contain date and time info."""
 
     def to_python(self, value):
+        """Return value cast to string."""
         value = super(DateTimeType, self).to_python(value)
         if value:
             value = parse_timestamp(value)
