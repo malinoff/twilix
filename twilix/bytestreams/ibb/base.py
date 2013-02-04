@@ -6,9 +6,11 @@ from twisted.internet import defer, reactor
 
 from twilix.bytestreams import genSID
 from twilix.bytestreams.ibb import IBB_NS
-from twilix.bytestreams.ibb.stanzas import OpenQuery, CloseQuery as CQ,\
-                                            DataQuery as DQ,\
-                                            MessageDataQuery as MDQ
+from twilix.bytestreams.ibb.stanzas import (
+        OpenQuery, CloseQuery as CQ,
+        DataQuery as DQ,
+        MessageDataQuery as MDQ
+    )
 from twilix.jid import internJID
 from twilix.stanzas import Iq
 from twilix import errors
@@ -78,7 +80,23 @@ class DataMessage(DataHandler, MDQ, PersonsValidator):
             return self.handler()
 
 class Transport(object):
+    """
+    Class which controls IBB state and data sending.
+    """
+
     def __init__(self, sid, session, dispatcher, interval):
+        """
+        Initiates transport.
+
+        :param sid: session ID.
+
+        :param session: dictionary with meta information about session.
+
+        :param dispatcher: dispatcher instance.
+
+        :param interval: interval between sending data.
+        """
+
         self.session = session
         self.dispatcher = dispatcher
         self.sid = sid
@@ -88,10 +106,17 @@ class Transport(object):
         self._produce()
         
     def write(self, buf):
+        """
+        Adds new data to the buffer.
+        """
+
         self.buf += buf
 
     @defer.inlineCallbacks
     def _write(self):
+        """
+        Sends a piece of data to the target.
+        """
         # XXX: Error handling
         if not self.session['active']:
             defer.returnValue(None)
@@ -118,6 +143,10 @@ class Transport(object):
         self._produce()
     
     def _produce(self):
+        """
+        Timer function, sends a piece of data.
+        """
+
         if self.buf:
             self._write()
         elif self.producer:
@@ -128,7 +157,7 @@ class Transport(object):
         self.producer = None
 
 class IbbStream(object):
-    """ Describe a in-band bytestream service which allow you
+    """ Describe an in-band bytestream service which allows you
         to pass binary data through an XML-stream. """
     NS = IBB_NS
 
