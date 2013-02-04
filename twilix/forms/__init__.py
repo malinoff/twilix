@@ -1,3 +1,6 @@
+"""
+Module provides an XMPP protocol extension for data forms. (XEP-0004)
+"""
 import copy
 
 from twilix.base.velement import VElement
@@ -6,11 +9,33 @@ from twilix.base.exceptions import ElementParseError
 from twilix import fields as f
 
 class ValidationError(Exception):
+    """
+    Raises when some form's data was not validated.
+    """
     pass
 
 class FormField(f.NodeProp):
+    """
+    Class to represent any form field.
+    """
+
     def __init__(self, var, field_type, label=None, default=None, initial=None,
                  required=False, *args, **kwargs):
+        """
+        Creates form field.
+
+        :param var: identifier of the field
+
+        :param field_type: type of data stored in the field
+
+        :param label: label associated with field
+
+        :param default: default value of data
+
+        :param initial: initial value of data
+
+        :param required: is field required
+        """
         self.var = var
         self.field_type = field_type
         self.initial = initial
@@ -43,6 +68,15 @@ class FormField(f.NodeProp):
         return value
 
 class Form(VElement):
+    """
+    Class to represent a form.
+
+    Attributes:
+        title -- used to label a whole form
+
+        instructions -- natural-language instructions to be followed
+    """
+
     elementName = 'x'
     elementUri = 'jabber:x:data'
 
