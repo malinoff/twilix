@@ -1,15 +1,42 @@
+"""
+Module implements field types defined in XEP-0004.
+"""
+
 from twilix.base.velement import VElement
 from twilix.errors import NotAcceptableException
 from twilix.base.exceptions import ElementParseError
 from twilix import fields
 
 class Option(VElement):
+    """
+    One of the options in a field of type "list-single" or "list-multi".
+
+    Attributes:
+        label -- label associated with option
+
+        value -- string represents the choice
+    """
     elementName = 'option'
 
     label = fields.StringAttr('label', required=False)
     value = fields.StringNode('value')
 
 class Field(VElement):
+    """
+    Base class to represent fields of any type.
+
+    Attributes:
+        label -- label associated with field
+
+        var -- identifier of the field
+
+        required -- flags the field to be required in order the form to be valid
+
+        values -- default value for the field
+
+        options -- list options
+    """
+
     elementName = 'field'
     fieldType = None # To be redefined in derived classes
     
@@ -55,6 +82,13 @@ class Field(VElement):
     value = property(_get_value, _set_value, _del_value)
 
 class MultilineField(Field):
+    """
+    Base class to represent multiline fields.
+
+    Attributes:
+        value -- values of all fields
+    """
+
     def _get_value(self):
         return u'\n'.join(self.values)
     def _set_value(self, value):
@@ -62,6 +96,13 @@ class MultilineField(Field):
     value = property(_get_value, _set_value)
 
 class SingleField(Field):
+    """
+    Base class to represent single-line fields.
+
+    Attributes:
+        value -- value of the field
+    """
+
     def _get_value(self):
         if self.values:
             return self.values[0]
@@ -110,6 +151,9 @@ class TextSingleField(SingleField):
     fieldType = 'text-single'
 
 class List(object):
+    """
+    Base class to represent "list-multi" and "list-single" fields.
+    """
 
     def fclean(self, values):
         super(List, self).fclean(values)
