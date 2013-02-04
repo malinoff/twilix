@@ -1,3 +1,7 @@
+"""
+Module contains elements which are used in Publish/Subscribe (XEP-0060).
+"""
+
 from twilix import fields
 from twilix.stanzas import Query, Message
 from twilix.base.velement import VElement
