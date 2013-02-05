@@ -115,8 +115,10 @@ class Transport(object):
     @defer.inlineCallbacks
     def _write(self):
         """
-        Sends a piece of data to the target.
+        Sends a piece of data to the target via the dispatcher and waits for
+        response if it necessary.
         """
+
         # XXX: Error handling
         if not self.session['active']:
             defer.returnValue(None)
@@ -138,13 +140,20 @@ class Transport(object):
             self.dispatcher.send(dq.iq)
 
     def registerProducer(self, producer, streaming):
+        """
+        Registers the producer which controls data streaming.
+        """
+
         assert streaming == False
         self.producer = producer
         self._produce()
     
     def _produce(self):
         """
-        Timer function, sends a piece of data.
+        Timer function, sends a piece of data to the target.
+
+        If there is no producer the data will sent via dispatcher.
+        Otherwise the producer will deliver the data.
         """
 
         if self.buf:
@@ -154,6 +163,10 @@ class Transport(object):
         reactor.callLater(self.interval, self._produce)
 
     def unregisterProducer(self):
+        """
+        Unregisters the producer.
+        """
+
         self.producer = None
 
 class IbbStream(object):
@@ -162,11 +175,25 @@ class IbbStream(object):
     NS = IBB_NS
 
     def __init__(self, dispatcher, send_interval=1):
+        """
+        Creates IBB stream object.
+
+        :param dispatcher: the dispatcher to deliver messages.
+
+        :param send_interval: the interval between sending the data.
+        """
+
         self.dispatcher = dispatcher
         self.sessions = {}
         self.send_interval = send_interval
         
     def init(self, disco=None):
+        """
+        Initiates handlers and adds the IBB feature to the disco if needs.
+
+        :param disco: The disco you want to add the IBB feature.
+        """
+
         if disco is not None:
             disco.root_info.addFeatures(Feature(var=IBB_NS))
 
@@ -176,18 +203,44 @@ class IbbStream(object):
         self.dispatcher.registerHandler((CloseQuery, self))
 
     def dataReceived(self, sid, buf, dont_unregister=False):
+        """
+        Calls the callback function when a data was received and 
+        unregisters the session when no data is received.
+
+        :param sid: session ID.
+
+        :param buf: received data.
+
+        :param dont_unregister: if True, the session will not be unregistered
+                                    when no data is received.
+        """
+
         session = self.sessions[sid]
         session['callback'](buf, session['meta'])
         if buf is None and not dont_unregister:
             self.unregisterSession(sid=sid)
 
     def dataSend(self, sid, buf):
+        """
+        Sends the data via the transport.
+
+        :param sid: session ID.
+
+        :param buf: the data to be sent.
+        """
+
         t = self.getTransport(sid)
         if t:
             t.write(buf)
             return True
 
     def getTransport(self, sid):
+        """
+        Returns transport associated with a session if it is active.
+
+        :param sid: session ID.
+        """
+
         if self.sessions[sid]['active']:
             return self.sessions[sid]['transport']
 
@@ -224,6 +277,12 @@ class IbbStream(object):
         return meta
 
     def unregisterConnection(self, sid):
+        """
+        Unregisters an active connection.
+
+        :param sid: session ID.
+        """
+
         s = self.sessions[sid]
         if not s['active']:
             return
@@ -231,6 +290,12 @@ class IbbStream(object):
         self._unregisterConnection(sid)
 
     def _unregisterConnection(self, sid):
+        """
+        Unregisters the producer and sends close query.
+
+        :param sid: session ID.
+        """
+
         s = self.sessions[sid]
         cq = CQ(sid=sid,
                 parent=Iq(to=s['initiator'],
@@ -244,6 +309,12 @@ class IbbStream(object):
         return self.dispatcher.send(cq.iq)
 
     def unregisterSession(self, sid):
+        """
+        Unregisters a session with closing associated connection.
+
+        :param sid: session ID.
+        """
+
         if self.sessions.has_key(sid):
             s = self.sessions[sid]
             self.unregisterConnection(sid)
