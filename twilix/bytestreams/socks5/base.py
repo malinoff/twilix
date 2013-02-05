@@ -1,3 +1,7 @@
+"""
+Module implements SOCKS5 bytestreams (XEP-0065).
+"""
+
 import sha
 import time
 import hashlib
@@ -21,7 +25,14 @@ def hashSID(sid, initiator, target):
     return sha.new(s).hexdigest()
 
 class Socks5ClientFactory(protocol.ClientFactory):
+    """
+    Extension of twisted's ClientFactory with SOCKS5 protocol.
+
+    To be used to build a SOCKS5 client.
+    """
+
     protocol = SOCKSv5Client
+
     def __init__(self, host, addr, deferred):
         self.host = host
         self.deferred = deferred
@@ -48,6 +59,9 @@ def _startClient(host, rhost, port, addr):
     return d
 
 class InitiationQuery(stanzas.StreamHostQuery):
+    """
+    Handler class that handles initiation of the SOCKS5 protocol.
+    """
 
     def setHandler(self):
         if self.sid not in self.host.sessions:
@@ -119,7 +133,7 @@ class InitiationQuery(stanzas.StreamHostQuery):
         return my_defer
 
 class Socks5Stream(protocol.Factory):
-    """ Describe a socks5 (XEP-0060) stream service which allow you
+    """ Describe a socks5 (XEP-0065) stream service which allow you
         to pass binary data to another entity even if entity is behind
         firewall or NAT. """
     NS = SOCKS5_NS
@@ -182,12 +196,27 @@ class Socks5Stream(protocol.Factory):
         return ifaces
 
     def getTransport(self, sid):
+        """
+        Returns transport associated with a session if it exists.
+
+        :param sid: session ID.
+        """
+
         session = self.sessions[sid]
         c = self.connections[session['hash']]['connection']
         if c:
             return c.transport
 
     def dataReceived(self, addr, buf):
+        """
+        Calls the callback function and unregisters the session if no data was
+        received.
+
+        :param addr: connection address.
+
+        :param buf: received data.
+        """
+
         connection = self.connections.get(addr)
         if not connection:
             return
@@ -197,6 +226,14 @@ class Socks5Stream(protocol.Factory):
             self.unregisterSession(addr=addr)
 
     def dataSend(self, sid, buf):
+        """
+        Sends the data via the transport if it exists.
+
+        :param sid: session ID.
+
+        :param buf: data to be sent.
+        """
+
         t = self.getTransport(sid)
         if t:
             t.write(buf)
@@ -223,6 +260,14 @@ class Socks5Stream(protocol.Factory):
         return d
 
     def unregisterConnection(self, sid=None, addr=None):
+        """
+        Unregisters a connection if it exists.
+
+        :param sid: session ID.
+
+        :param addr: connection address.
+        """
+
         if sid is not None:
             addr = self.sessions.get(sid, {}).get('hash')
         if addr is not None and self.connections.has_key(addr):
@@ -234,6 +279,14 @@ class Socks5Stream(protocol.Factory):
             return sid
 
     def unregisterSession(self, sid=None, addr=None):
+        """
+        Unregisters the session and closes associated connection.
+
+        :param sid: session ID.
+
+        :param addr: connection address.
+        """
+
         if sid is None:
             sid = self.unregisterConnection(addr=addr)
         elif self.sessions.has_key(sid):
@@ -243,6 +296,16 @@ class Socks5Stream(protocol.Factory):
 
     @defer.inlineCallbacks
     def populate_proxies(self, server_jid, from_=None):
+        """
+        Discovers the server in order to find proxies fit to use
+        SOCKS5 protocol and then examines all found proxiex to receive all
+        available IP addresses and ports.
+
+        :param server_jid: JabberID of server to be discovered.
+
+        :param from_: JabberID of the receiver.
+        """
+
         assert self.disco
         if from_ is None:
             from_ = self.dispatcher.myjid
@@ -263,6 +326,15 @@ class Socks5Stream(protocol.Factory):
 
     @defer.inlineCallbacks
     def examine_proxy(self, jid, from_):
+        """
+        Examines the proxy in order to get all available IP addresses and
+        ports.
+
+        :param jid: JabberID of the proxy.
+
+        :param from_: JabberID of the receiver.
+        """
+
         query = stanzas.GetStreamHostsQuery(
                  parent=Iq(from_=from_, to=jid, type_='get'))
         result = yield self.dispatcher.send(query)
