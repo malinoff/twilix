@@ -1,3 +1,5 @@
+from twilix.errors import NotImplementedError
+
 class Session(object):
 
     min_sid = 0
@@ -30,7 +32,7 @@ class Session(object):
             return Error # no sid
         return self.info[jid]
 
-class BaseCommand(#VElement ?):
+class BaseCommand(object):
 
     node = # str
     action = # str
@@ -45,7 +47,17 @@ class BaseCommand(#VElement ?):
 
 class Command(BaseCommand):
 
-    def onSubmit(self, form):
-        
+    def onSubmit(self, form=None):
+        raise NotImplementedError
 
-    def onNextStep(self
+    def onNextStep(self, form=None):
+        pass
+
+class StaticCommand(Command):
+
+    def __init__(self, session, forms, *args, **kwargs):
+        self.forms = forms
+        super(StaticCommand, self).__init__(session, *args, **kwargs)
+
+    def onDone(self):
+        pass
