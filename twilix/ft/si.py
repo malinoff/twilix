@@ -9,26 +9,16 @@ from twilix import fields
 PROFILE_NS = 'http://jabber.org/protocol/si/profile/file-transfer'
 
 class File(VElement):
-    """
-    Class to represent a file.
-    """
     elementName = 'file'
     elementUri = PROFILE_NS
 
 class Range(VElement):
-    """
-    Class to represent a ranged transfer.
-    """
     elementName = 'range'
 
     length = fields.IntegerAttr('length', required=False)
     offset = fields.IntegerAttr('offset', required=False)
 
 class FileRequest(File):
-    """
-    Class to represent request attributes during the stage of stream
-    initiation.
-    """
     name_ = fields.StringAttr('name')
     size = fields.IntegerAttr('size')
     hash_ = fields.StringAttr('hash', required=False)
@@ -37,9 +27,6 @@ class FileRequest(File):
     range_ = fields.ElementNode(Range, required=False)
 
 class FTSIRequest(SIRequest):
-    """
-    Handler class to request a file-transfer with remote server.
-    """
     file_ = fields.ElementNode(FileRequest)
 
     @defer.inlineCallbacks
