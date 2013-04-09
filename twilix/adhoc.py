@@ -52,7 +52,7 @@ class Commands(object):
         if isinstance(keys, basestring):
             node, jid = keys, ''
         else:
-            node, jid = keys[0], keys[1]
+            node, jid = keys
         if not self._handlers.has_key(jid):
             self._handlers[jid] = {}
         if self._handlers[jid].has_key(node):
@@ -64,25 +64,15 @@ class Commands(object):
         if isinstance(keys, basestring):
             node, jid = keys, ''
         else:
-            node, jid = keys[0], keys[1]
-        if not self._handlers.has_key(jid):
-            raise KeyError('JID not found')
-        elif not self._handlers[jid].has_key(node):
-            raise KeyError('Command not found')
-        else:
-            del self._handlers[jid][node]
+            node, jid = keys
+        del self._handlers[jid][node]
 
     def __getitem__(self, keys):
         if isinstance(keys, basestring):
             node, jid = keys, ''
         else:
-            node, jid = keys[0], keys[1]
-        if not self._handlers.has_key(jid):
-            raise KeyError('JID not found')
-        elif not self._handlers.has_key(node):
-            raise KeyError('Command not found')
-        else:
-            return self._handlers[jid][node]
+            node, jid = keys
+        return self._handlers[jid][node]
 
 class BaseCommand(object):
     # need to set self.initial in ancestor for the first form
