@@ -36,7 +36,7 @@ class MyCommandQuery(Command):
             raise ItemNotFoundException
         return EmptyStanza()
 
-class Commands(dict):
+class Commands(object):
 
     def __init__(self, dispatcher):
         self._handlers = {'':{}}
