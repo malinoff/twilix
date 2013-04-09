@@ -18,20 +18,20 @@ class Command(BaseCommand):
 
 
 class MyCommandQuery(Command):
-    parentClass = MyIQ
 
     def setHandler(self):
         try:
             node = self.iq.command.node
         except:
             raise BadRequestException
+        jid = self.iq.to
         if self.host._handlers.has_key(jid):
             if self.host._handlers[jid].has_key(node):
                 self.host._handlers[jid][node]['execute'](self)
             else:
                 raise ItemNotFoundException
-        elif self.host._handlers[''].has_key(node):
-            self._handlers[''][node]['execute'](self)
+        elif self.host._handlers[self.host.jid].has_key(node):
+            self._handlers[self.host.jid][node]['execute'](self)
         else:
             raise ItemNotFoundException
         return EmptyStanza()
@@ -39,7 +39,8 @@ class MyCommandQuery(Command):
 class Commands(object):
 
     def __init__(self, dispatcher):
-        self._handlers = {'':{}}
+        self.jid = dispatcher.myjid
+        self._handlers = {self.jid:{}}
         self.dispatcher = dispatcher
 
     def init(self, disco=None):
@@ -48,11 +49,14 @@ class Commands(object):
         if disco is not None:
             disco.root_info.addFeatures(Feature())
 
-    def __setitem__(self, keys, command):
+    def _parse_key(self, keys):
         if isinstance(keys, basestring):
-            node, jid = keys, ''
+            node, jid = keys, self.jid
         else:
             node, jid = keys
+
+    def __setitem__(self, keys, command):
+        node, jid = self._parse_key(keys)
         if not self._handlers.has_key(jid):
             self._handlers[jid] = {}
         if self._handlers[jid].has_key(node):
@@ -61,17 +65,11 @@ class Commands(object):
             self._handlers[jid][node] = {'execute':command}
 
     def __delitem__(self, keys):
-        if isinstance(keys, basestring):
-            node, jid = keys, ''
-        else:
-            node, jid = keys
+        node, jid = self._parse_key(keys)
         del self._handlers[jid][node]
 
     def __getitem__(self, keys):
-        if isinstance(keys, basestring):
-            node, jid = keys, ''
-        else:
-            node, jid = keys
+        node, jid = self._parse_key(keys)
         return self._handlers[jid][node]
 
 class BaseCommand(object):
@@ -80,14 +78,15 @@ class BaseCommand(object):
     name = None #need to be overriden in ancestor
     count = 0
 
-    def __init__(self, jid=''):
+    def __init__(self, jid=None):
         self.sessioncount = 0
         self.sessions = {}
         self._jid = jid
 
     def init(self, commands):
         self._commands = commands
-        self._commands.addCommand(self.name, self.execute, self._jid)
+        jid = self._jid or commands.jid
+        self._commands.addCommand(self.name, self.execute, jid)
 
     def getSessionID(self):
         self.count += 1
