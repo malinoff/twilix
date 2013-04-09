@@ -36,7 +36,7 @@ class MyCommandQuery(Command):
             raise ItemNotFoundException
         return EmptyStanza()
 
-class Commands(object):
+class Commands(dict):
 
     def __init__(self, dispatcher):
         self._handlers = {'':{}}
@@ -48,27 +48,39 @@ class Commands(object):
         if disco is not None:
             disco.root_info.addFeatures(Feature())
 
-    def addCommand(self, node, command, jid=''):
+    def __setitem__(self, keys, command):
+        if isinstance(keys, basestring):
+            node, jid = keys, ''
+        else:
+            node, jid = keys[0], keys[1]
         if not self._handlers.has_key(jid):
             self._handlers[jid] = {}
         if self._handlers[jid].has_key(node):
-            raise Exception('Command exists')
+            raise KeyError('Command exists')
         else:
             self._handlers[jid][node] = {'execute':command}
 
-    def delCommand(self, node, jid=''):
+    def __delitem__(self, keys):
+        if isinstance(keys, basestring):
+            node, jid = keys, ''
+        else:
+            node, jid = keys[0], keys[1]
         if not self._handlers.has_key(jid):
-            raise Error(
+            raise KeyError('JID not found')
         elif not self._handlers[jid].has_key(node):
-            raise Exception('Command not found')
+            raise KeyError('Command not found')
         else:
             del self._handlers[jid][node]
 
-    def getCommand(self, node, jid=''):
+    def __getitem__(self, keys):
+        if isinstance(keys, basestring):
+            node, jid = keys, ''
+        else:
+            node, jid = keys[0], keys[1]
         if not self._handlers.has_key(jid):
-            raise Exception('JID not found')
+            raise KeyError('JID not found')
         elif not self._handlers.has_key(node):
-            raise Exception('Command not found')
+            raise KeyError('Command not found')
         else:
             return self._handlers[jid][node]
 
@@ -92,16 +104,8 @@ class BaseCommand(object):
         return 'cmd-%s-%d' % (self.name, self.count)
 
     def execute(self, request):
-        try:
-            session = request.command.sessionid
-        except: #no sessionid in command
-            session = None
-        try:
-            action = request.command.action
-        except: #no action
-            action = None
-        if not action:
-            action = 'execute'
+        session = request.command.getattr('sessionid', None)
+        action = request.command.getattr('action', 'execute')
         if self.session.has_key(session):
             if (self.sessions[session]['jid'] == request.from_ and
                     self.sessions[session]['actions'].has_key(action)):
